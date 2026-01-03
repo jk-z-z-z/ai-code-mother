@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-
+import { useLoginUserStore } from '@/stores/LoginUser.ts'
+import { logout } from '@/api/userController.ts'
+import { message } from 'ant-design-vue'
+import { LogoutOutlined } from '@ant-design/icons-vue'
 interface MenuItemConfig {
   key: string
   label: string
@@ -11,10 +14,9 @@ interface MenuItemConfig {
 const router = useRouter()
 const route = useRoute()
 
-const menuItems: MenuItemConfig[] = [
-  { key: 'home', label: '首页', path: '/' },
-  { key: 'about', label: '关于', path: '/about' },
-]
+const loginUserStore = useLoginUserStore()
+
+const menuItems: MenuItemConfig[] = [{ key: 'home', label: '首页', path: '/' }]
 
 const selectedKeys = computed(() => {
   const current = menuItems.find((item) => item.path === route.path)
@@ -27,13 +29,26 @@ const handleMenuClick = (info: { key: string }) => {
     router.push(item.path)
   }
 }
+
+const doLogout = async () => {
+  const res = await logout()
+  if (res.data.code == 0) {
+    loginUserStore.setLoginUser({
+      userName: '未登陆',
+    })
+    message.success('退出登录成功')
+    await router.push('/user/login')
+  } else {
+    message.error('退出登陆失败' + res.data.message)
+  }
+}
 </script>
 
 <template>
   <div class="global-header">
     <div class="global-header-left">
       <div class="logo-wrapper">
-        <img class="logo" src="@/assets/logo.png" alt="logo">
+        <img class="logo" src="@/assets/logo.png" alt="logo" />
         <span class="title">零代码应用生成平台</span>
       </div>
 
@@ -44,20 +59,27 @@ const handleMenuClick = (info: { key: string }) => {
         :selected-keys="selectedKeys"
         @click="handleMenuClick"
       >
-        <a-menu-item
-          v-for="item in menuItems"
-          :key="item.key"
-        >
+        <a-menu-item v-for="item in menuItems" :key="item.key">
           {{ item.label }}
         </a-menu-item>
       </a-menu>
     </div>
-
-    <div class="global-header-right">
-      <a-button type="primary">
-        登录
-      </a-button>
-    </div>
+  </div>
+  <div v-if="loginUserStore.loginUser.id">
+    <a-dropdown>
+      <a-space>
+        <a-avatar :src="loginUserStore.loginUser.userAvatar" />
+        {{ loginUserStore.loginUser.userName ?? '无名' }}
+      </a-space>
+      <template #overlay>
+        <a-menu>
+          <a-menu-item @click="doLogout">
+            <LogoutOutlined />
+            退出登录
+          </a-menu-item>
+        </a-menu>
+      </template>
+    </a-dropdown>
   </div>
 </template>
 
