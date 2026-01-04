@@ -16,16 +16,29 @@ const route = useRoute()
 
 const loginUserStore = useLoginUserStore()
 
-const menuItems: MenuItemConfig[] = [{ key: 'home', label: '首页', path: '/' }]
+const menuItems = computed<MenuItemConfig[]>(() => {
+  const items: MenuItemConfig[] = [
+    { key: 'home', label: '首页', path: '/' },
+    { key: 'feature1', label: '功能一', path: '' },
+    //{ key: 'feature2', label: '功能二', path: '' },
+  ]
+  if (loginUserStore.loginUser.userRole === 'admin') {
+    items.push({ key: 'userManage', label: '用户管理', path: '/admin/userManage' })
+  }
+  return items
+})
 
 const selectedKeys = computed(() => {
-  const current = menuItems.find((item) => item.path === route.path)
+  const current = menuItems.value.find((item) => item.path === route.path)
   return current ? [current.key] : []
 })
 
 const handleMenuClick = (info: { key: string }) => {
-  const item = menuItems.find((menuItem) => menuItem.key === info.key)
-  if (item && item.path !== route.path) {
+  const item = menuItems.value.find((menuItem) => menuItem.key === info.key)
+  if (!item || !item.path) {
+    return
+  }
+  if (item.path !== route.path) {
     router.push(item.path)
   }
 }
@@ -51,7 +64,8 @@ const doLogout = async () => {
         <img class="logo" src="@/assets/logo.png" alt="logo" />
         <span class="title">零代码应用生成平台</span>
       </div>
-
+    </div>
+    <div class="global-header-menu">
       <a-menu
         class="global-header-menu"
         mode="horizontal"
@@ -64,22 +78,27 @@ const doLogout = async () => {
         </a-menu-item>
       </a-menu>
     </div>
-  </div>
-  <div v-if="loginUserStore.loginUser.id">
-    <a-dropdown>
-      <a-space>
-        <a-avatar :src="loginUserStore.loginUser.userAvatar" />
-        {{ loginUserStore.loginUser.userName ?? '无名' }}
-      </a-space>
-      <template #overlay>
-        <a-menu>
-          <a-menu-item @click="doLogout">
-            <LogoutOutlined />
-            退出登录
-          </a-menu-item>
-        </a-menu>
+    <div class="global-header-right">
+      <template v-if="loginUserStore.loginUser.id">
+        <a-dropdown>
+          <a-space>
+            <a-avatar :src="loginUserStore.loginUser.userAvatar" />
+            {{ loginUserStore.loginUser.userName ?? '无名' }}
+          </a-space>
+          <template #overlay>
+            <a-menu>
+              <a-menu-item @click="doLogout">
+                <LogoutOutlined />
+                退出登录
+              </a-menu-item>
+            </a-menu>
+          </template>
+        </a-dropdown>
       </template>
-    </a-dropdown>
+      <template v-else>
+        <a-button type="primary" @click="router.push('/user/login')">登录</a-button>
+      </template>
+    </div>
   </div>
 </template>
 
@@ -87,17 +106,32 @@ const doLogout = async () => {
 .global-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   padding: 0 24px;
   height: 64px;
+  flex: 1;
+}
+
+.global-header-menu {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  flex: 1;
+  min-width: 0;
 }
 
 .global-header-left {
   display: flex;
   align-items: center;
   gap: 24px;
-  flex: 1;
-  min-width: 0;
+  flex: 0 0 auto;
+}
+.global-header-right {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  flex: 0 0 auto;
+  margin-left: auto;
 }
 
 .logo-wrapper {
@@ -115,20 +149,6 @@ const doLogout = async () => {
   font-weight: 600;
   color: #000000;
   white-space: nowrap;
-}
-
-.global-header-menu {
-  flex: 1;
-  min-width: 0;
-  border-bottom: none;
-}
-
-.global-header-right {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  min-width: 96px;
-  padding-left: 16px;
 }
 
 @media (max-width: 768px) {
