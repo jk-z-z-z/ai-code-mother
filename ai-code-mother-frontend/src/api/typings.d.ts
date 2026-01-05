@@ -1,4 +1,61 @@
 declare namespace API {
+  type AppAddRequest = {
+    initPrompt?: string
+    codeGenType?: string
+  }
+
+  type AppDeployRequest = {
+    appId?: number
+  }
+
+  type AppQueryRequest = {
+    pageNum?: number
+    pageSize?: number
+    sortField?: string
+    sortOrder?: string
+    id?: number
+    appName?: string
+    cover?: string
+    initPrompt?: string
+    codeGenType?: string
+    deployKey?: string
+    priority?: number
+    userId?: number
+    isDelete?: number
+  }
+
+  type AppUpdateMyRequest = {
+    id?: number
+    appName?: string
+  }
+
+  type AppUpdateRequest = {
+    id?: number
+    appName?: string
+    cover?: string
+    priority?: number
+  }
+
+  type AppVO = {
+    id?: number
+    appName?: string
+    cover?: string
+    initPrompt?: string
+    codeGenType?: string
+    deployKey?: string
+    deployedTime?: string
+    priority?: number
+    userId?: number
+    createTime?: string
+    userVO?: UserVO
+  }
+
+  type BaseResponseAppVO = {
+    code?: number
+    data?: AppVO
+    message?: string
+  }
+
   type BaseResponseBoolean = {
     code?: number
     data?: boolean
@@ -14,6 +71,12 @@ declare namespace API {
   type BaseResponseLong = {
     code?: number
     data?: number
+    message?: string
+  }
+
+  type BaseResponsePageAppVO = {
+    code?: number
+    data?: PageAppVO
     message?: string
   }
 
@@ -41,8 +104,25 @@ declare namespace API {
     message?: string
   }
 
+  type chatToGenCodeParams = {
+    message: string
+    appId: number
+  }
+
+  type deleteAppParams = {
+    id: DeleteRequest
+  }
+
   type DeleteRequest = {
     id?: number
+  }
+
+  type getAppByIdParams = {
+    id: number
+  }
+
+  type getMyAppByIdParams = {
+    id: number
   }
 
   type getUserByIdParams = {
@@ -64,6 +144,15 @@ declare namespace API {
     createTime?: string
   }
 
+  type PageAppVO = {
+    records?: AppVO[]
+    pageNumber?: number
+    pageSize?: number
+    totalPage?: number
+    totalRow?: number
+    optimizeCountQuery?: boolean
+  }
+
   type PageUserVO = {
     records?: UserVO[]
     pageNumber?: number
@@ -72,6 +161,8 @@ declare namespace API {
     totalRow?: number
     optimizeCountQuery?: boolean
   }
+
+  type ServerSentEventString = true
 
   type User = {
     id?: number

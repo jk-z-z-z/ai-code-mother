@@ -11,10 +11,10 @@ import java.io.File;
 public class CodeFileSaverExecutor {
     private static final HtmlCodeFileSaverTemplate htmlCodeFileSaverTemplate = new HtmlCodeFileSaverTemplate();
     private static final MultiFileCodeFileSaverTemplate multiFileCodeFileSaverTemplate = new MultiFileCodeFileSaverTemplate();
-    public static File executeSaver(Object result, CodeGenTypeEnum codeGenType){
+    public static File executeSaver(Object result, CodeGenTypeEnum codeGenType,Long appId){
         return switch(codeGenType){
-            case HTML -> htmlCodeFileSaverTemplate.saver((HtmlCodeResult) result);
-            case MULTI_FILE -> multiFileCodeFileSaverTemplate.saver((MultiFileCodeResult) result);
+            case HTML -> htmlCodeFileSaverTemplate.saver((HtmlCodeResult) result,appId);
+            case MULTI_FILE -> multiFileCodeFileSaverTemplate.saver((MultiFileCodeResult) result,appId);
             default -> throw new BusinessException(ErrorCode.PARAMS_ERROR,"不存在类型");
         };
     }

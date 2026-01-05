@@ -3,6 +3,7 @@ package com.example.aicodemother.cores.saver;
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.StrUtil;
+import com.example.aicodemother.constant.AppConstant;
 import com.example.aicodemother.exception.BusinessException;
 import com.example.aicodemother.exception.ErrorCode;
 import com.example.aicodemother.model.enums.CodeGenTypeEnum;
@@ -15,14 +16,16 @@ public abstract class CodeFileSaverTemplate<T> {
     /**
      * 文件路径
      */
-    protected static final String FILE_SAVE_ROOT_DIR = System.getProperty("user.dir") + "/tmp/code_output";
+    protected static final String FILE_SAVE_ROOT_DIR = AppConstant.CODE_OUTPUT_ROOT_DIR;
 
-    public final File saver(T result) {
+
+
+    public final File saver(T result,Long appId) {
         //0.校验参数
         validateParams(result);
 
         //1.构建目录
-        String dirPath = buildUniqueDir();
+        String dirPath = buildUniqueDir(appId);
         //2.保存文件
         saveFile(result, dirPath);
         return new File(dirPath);
@@ -35,9 +38,9 @@ public abstract class CodeFileSaverTemplate<T> {
         }
     }
 
-    private String buildUniqueDir() {
+    private String buildUniqueDir(Long appId) {
         String bizType = getCodeType().getValue();
-        String uniqueDirName = StrUtil.format("{}_{}", bizType, IdUtil.getSnowflakeNextIdStr());
+        String uniqueDirName = StrUtil.format("{}_{}", bizType, appId);
         String dirPath = FILE_SAVE_ROOT_DIR + File.separator + uniqueDirName;
         FileUtil.mkdir(dirPath);
         return dirPath;

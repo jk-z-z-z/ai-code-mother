@@ -2,6 +2,7 @@ package com.example.aicodemother.controller;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.StrUtil;
+import cn.hutool.json.JSONUtil;
 import com.example.aicodemother.annotation.AuthCheck;
 import com.example.aicodemother.common.BaseResponse;
 import com.example.aicodemother.common.DeleteRequest;
@@ -11,10 +12,7 @@ import com.example.aicodemother.constant.UserConstant;
 import com.example.aicodemother.exception.BusinessException;
 import com.example.aicodemother.exception.ErrorCode;
 import com.example.aicodemother.exception.ThrowUtils;
-import com.example.aicodemother.model.dto.app.AppAddRequest;
-import com.example.aicodemother.model.dto.app.AppQueryRequest;
-import com.example.aicodemother.model.dto.app.AppUpdateMyRequest;
-import com.example.aicodemother.model.dto.app.AppUpdateRequest;
+import com.example.aicodemother.model.dto.app.*;
 import com.example.aicodemother.model.entity.App;
 import com.example.aicodemother.model.entity.User;
 import com.example.aicodemother.model.vo.AppVO;
@@ -26,21 +24,24 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * 应用 控制层。
  *
  * @author zzZ.
  */
-@Tag(name = "应用接口", description = "应用接口")
 @RestController
 @RequestMapping("/app")
 public class AppController {
@@ -50,6 +51,47 @@ public class AppController {
 
     @Autowired
     private UserService userService;
+
+    /**
+     * 应用部署
+     *
+     * @param appDeployRequest 部署请求
+     * @param request          请求
+     * @return 部署 URL
+     */
+    @PostMapping("/deploy")
+    public BaseResponse<String> deployApp(@RequestBody AppDeployRequest appDeployRequest, HttpServletRequest request) {
+        ThrowUtils.throwIf(appDeployRequest == null, ErrorCode.PARAMS_ERROR);
+        Long appId = appDeployRequest.getAppId();
+        ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "应用 ID 不能为空");
+        // 获取当前登录用户
+        User loginUser = userService.getLoginUser(request);
+        // 调用服务部署应用
+        String deployUrl = appService.deployApp(appId, loginUser);
+        return ResultUtils.success(deployUrl);
+    }
+
+
+    @GetMapping("/chat/gen/code")
+    public Flux<ServerSentEvent<String>> chatToGenCode(String message, Long appId, HttpServletRequest request) {
+        ThrowUtils.throwIf(StrUtil.isBlank(message), ErrorCode.PARAMS_ERROR, "message不能为空");
+        ThrowUtils.throwIf(appId == null, ErrorCode.PARAMS_ERROR, "appId不能为空");
+        User loginUser = userService.getLoginUser(request);
+        Flux<String> contentFlux = appService.chatToGenCode(message, loginUser, appId);
+        return contentFlux
+                .map(chunk -> {
+                    Map<Character, String> map = Map.of('d', chunk);
+                    String jsonData = JSONUtil.toJsonStr(map);
+                    return ServerSentEvent.<String>builder()
+                            .data(jsonData)
+                            .build();
+                })
+                .concatWith(Mono.just(ServerSentEvent.<String>builder()
+                        .event("done")
+                        .data("")
+                        .build()
+                ));
+    }
 
     /**
      * 添加应用接口
@@ -144,7 +186,7 @@ public class AppController {
         // 检查应用是否存在
         ThrowUtils.throwIf(oldApp == null, ErrorCode.NOT_FOUND_ERROR);
         // 检查当前用户是否有权限删除该应用（只有应用创建者才能删除）
-        ThrowUtils.throwIf((!loginUser.getId().equals(oldApp.getUserId()))||!UserConstant.ADMIN_ROLE.equals(loginUser.getUserRole()), ErrorCode.NO_AUTH_ERROR);
+        ThrowUtils.throwIf((!loginUser.getId().equals(oldApp.getUserId())) || !UserConstant.ADMIN_ROLE.equals(loginUser.getUserRole()), ErrorCode.NO_AUTH_ERROR);
         // 执行删除操作
         boolean result = appService.removeById(deleteRequest.getId());
         // 检查删除操作是否成功
@@ -181,7 +223,7 @@ public class AppController {
      * 该接口用于分页查询当前用户的应用列表
      *
      * @param appQueryRequest 应用查询请求参数，包含分页信息和查询条件
-     * @param request           HTTP请求对象，用于获取用户登录信息
+     * @param request         HTTP请求对象，用于获取用户登录信息
      * @return 返回分页后的应用视图对象列表
      */
     @Operation(description = "用户批量查询应用接口")
@@ -235,12 +277,13 @@ public class AppController {
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
         return ResultUtils.success(true);
     }
+
     /**
      * 管理员删除应用接口
      * 该接口用于根据应用ID删除应用
      *
      * @param deleteRequest 删除请求参数，包含要删除的应用ID
-     * @return 返回删除操作是否成功的响应对象
+     * @return 返回删除操作是否成功响应对象
      */
     @Operation(description = "管理员删除应用接口")
     @PostMapping("/admin/delete")
