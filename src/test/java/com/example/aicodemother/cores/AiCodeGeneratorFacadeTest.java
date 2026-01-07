@@ -27,12 +27,13 @@ class AiCodeGeneratorFacadeTest {
     @Resource
     private AiCodeGeneratorFacade aiCodeGeneratorFacade;
 
+    private final static Long appId = 1L;
 
     @Test
     void generateAndSaveCode() {
         String userMessage="请帮我生成一个登陆界面，每部分不超过20行代码";
         CodeGenTypeEnum codeGenTypeEnum = CodeGenTypeEnum.MULTI_FILE;
-        File file=aiCodeGeneratorFacade.generateAndSaveCode(userMessage, codeGenTypeEnum);
+        File file=aiCodeGeneratorFacade.generateAndSaveCode(userMessage, codeGenTypeEnum,appId);
         Assertions.assertNotNull(file);
         Assertions.assertTrue(file.exists());
     }
@@ -41,7 +42,7 @@ class AiCodeGeneratorFacadeTest {
     void generateAndSaveCodeStreaming() {
         String userMessage="请帮我生成一个登陆界面，每部分不超过20行代码";
         CodeGenTypeEnum codeGenTypeEnum = CodeGenTypeEnum.MULTI_FILE;
-        Flux<String> stringFlux = aiCodeGeneratorFacade.generateAndSaveCodeStreaming(userMessage, codeGenTypeEnum);
+        Flux<String> stringFlux = aiCodeGeneratorFacade.generateAndSaveCodeStreaming(userMessage, codeGenTypeEnum,appId);
         Assertions.assertNotNull(stringFlux);
         List<String> result =stringFlux.collectList().block();
         Assertions.assertNotNull(result);

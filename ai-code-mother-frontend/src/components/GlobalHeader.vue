@@ -17,12 +17,9 @@ const route = useRoute()
 const loginUserStore = useLoginUserStore()
 
 const menuItems = computed<MenuItemConfig[]>(() => {
-  const items: MenuItemConfig[] = [
-    { key: 'home', label: '首页', path: '/' },
-    { key: 'feature1', label: '功能一', path: '' },
-    //{ key: 'feature2', label: '功能二', path: '' },
-  ]
+  const items: MenuItemConfig[] = [{ key: 'home', label: '首页', path: '/' }]
   if (loginUserStore.loginUser.userRole === 'admin') {
+    items.push({ key: 'appManage', label: '应用管理', path: '/admin/appManage' })
     items.push({ key: 'userManage', label: '用户管理', path: '/admin/userManage' })
   }
   return items
@@ -157,7 +154,6 @@ const doLogout = async () => {
   }
 
   .title {
-    //display: none;
   }
 }
 </style>

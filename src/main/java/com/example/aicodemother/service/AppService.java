@@ -5,7 +5,6 @@ import com.example.aicodemother.model.dto.app.AppMyQueryRequest;
 import com.example.aicodemother.model.dto.app.AppQueryRequest;
 import com.example.aicodemother.model.entity.App;
 import com.example.aicodemother.model.entity.User;
-import com.example.aicodemother.model.enums.CodeGenTypeEnum;
 import com.example.aicodemother.model.vo.AppVO;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.core.service.IService;
@@ -27,6 +26,8 @@ public interface AppService extends IService<App> {
     List<AppVO> getAppVOList(List<App> appList);
 
     QueryWrapper getQueryWrapper(AppQueryRequest appQueryRequest);
+
+    boolean deleteAppAndHistory(Long appId);
 
     Flux<String> chatToGenCode(String message, User loginUser, Long appId);
     @Deprecated

@@ -21,7 +21,6 @@ import com.example.aicodemother.service.UserService;
 import com.mybatisflex.core.paginate.Page;
 import com.mybatisflex.core.query.QueryWrapper;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.codec.ServerSentEvent;
@@ -116,6 +115,9 @@ public class AppController {
         BeanUtil.copyProperties(appAddRequest, app);
         // 设置用户ID和默认优先级
         app.setUserId(loginUser.getId());
+        if(app.getCover() == null){
+            app.setCover(loginUser.getUserAvatar());
+        }
         app.setAppName(initPrompt.substring(0, Math.min(10, initPrompt.length())));
         if (app.getPriority() == null) {
             app.setPriority(0);
@@ -157,6 +159,7 @@ public class AppController {
         App app = new App();
         app.setId(appUpdateMyRequest.getId());
         app.setAppName(appName);
+        app.setCover(appUpdateMyRequest.getCover());
         // 更新应用信息到数据库，并获取更新结果
         boolean result = appService.updateById(app);
         // 检查更新是否成功，若失败则抛出操作错误异常
@@ -187,8 +190,8 @@ public class AppController {
         ThrowUtils.throwIf(oldApp == null, ErrorCode.NOT_FOUND_ERROR);
         // 检查当前用户是否有权限删除该应用（只有应用创建者才能删除）
         ThrowUtils.throwIf((!loginUser.getId().equals(oldApp.getUserId())) || !UserConstant.ADMIN_ROLE.equals(loginUser.getUserRole()), ErrorCode.NO_AUTH_ERROR);
-        // 执行删除操作
-        boolean result = appService.removeById(deleteRequest.getId());
+        // 执行删除操作（包含关联对话历史）
+        boolean result = appService.deleteAppAndHistory(deleteRequest.getId());
         // 检查删除操作是否成功
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
         // 返回操作成功结果
@@ -288,12 +291,12 @@ public class AppController {
     @Operation(description = "管理员删除应用接口")
     @PostMapping("/admin/delete")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
-    public BaseResponse<Boolean> deleteApp(@RequestParam("id") DeleteRequest deleteRequest) {
+    public BaseResponse<Boolean> deleteApp(@RequestBody DeleteRequest deleteRequest) {
         ThrowUtils.throwIf(deleteRequest == null, ErrorCode.PARAMS_ERROR);
         Long id = deleteRequest.getId();
         App oldApp = appService.getById(id);
         ThrowUtils.throwIf(oldApp == null, ErrorCode.NOT_FOUND_ERROR);
-        boolean result = appService.removeById(id);
+        boolean result = appService.deleteAppAndHistory(id);
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
         return ResultUtils.success(true);
     }

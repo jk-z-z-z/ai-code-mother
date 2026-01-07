@@ -1,5 +1,6 @@
 package com.example.aicodemother.model.dto.app;
 
+import com.example.aicodemother.model.enums.CodeGenTypeEnum;
 import lombok.Data;
 
 import java.io.Serializable;

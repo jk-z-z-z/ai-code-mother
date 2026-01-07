@@ -27,6 +27,7 @@ declare namespace API {
   type AppUpdateMyRequest = {
     id?: number
     appName?: string
+    cover?: string
   }
 
   type AppUpdateRequest = {
@@ -47,6 +48,7 @@ declare namespace API {
     priority?: number
     userId?: number
     createTime?: string
+    updateTime?: string
     userVO?: UserVO
   }
 
@@ -109,10 +111,6 @@ declare namespace API {
     appId: number
   }
 
-  type deleteAppParams = {
-    id: DeleteRequest
-  }
-
   type DeleteRequest = {
     id?: number
   }
@@ -163,6 +161,10 @@ declare namespace API {
   }
 
   type ServerSentEventString = true
+
+  type serveStaticResourceParams = {
+    deployKey: string
+  }
 
   type User = {
     id?: number

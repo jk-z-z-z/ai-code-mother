@@ -51,7 +51,7 @@ const handleSubmit = async (values: API.UserLoginRequest) => {
     await loginUserStore.fetchLoginUser()
     message.success('登陆成功')
     router.push({
-      path: '/user/home',
+      path: '/',
       replace: true,
     })
   } else {

@@ -15,16 +15,20 @@ import com.example.aicodemother.model.dto.app.AppFeaturedQueryRequest;
 import com.example.aicodemother.model.dto.app.AppMyQueryRequest;
 import com.example.aicodemother.model.dto.app.AppQueryRequest;
 import com.example.aicodemother.model.entity.App;
+import com.example.aicodemother.model.entity.ChatHistory;
 import com.example.aicodemother.model.entity.User;
 import com.example.aicodemother.model.enums.CodeGenTypeEnum;
+import com.example.aicodemother.model.enums.MessageTypeEnum;
 import com.example.aicodemother.model.vo.AppVO;
 import com.example.aicodemother.service.AppService;
+import com.example.aicodemother.service.ChatHistoryService;
 import com.example.aicodemother.service.UserService;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.spring.service.impl.ServiceImpl;
 import jakarta.annotation.Resource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Flux;
 
 import java.io.File;
@@ -46,8 +50,12 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 
     @Resource
     private UserService userService;
+
     @Autowired
     private AiCodeGeneratorFacade aiCodeGeneratorFacade;
+
+    @Resource
+    private ChatHistoryService chatHistoryService;
 
     @Override
     public String deployApp(Long appId, User loginUser) {
@@ -157,6 +165,19 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean deleteAppAndHistory(Long appId) {
+        //校验应用参数
+        ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "应用ID异常");
+        //删除应用对话历史
+        QueryWrapper queryWrapper = QueryWrapper.create()
+                .eq("appId", appId);
+        chatHistoryService.remove(queryWrapper);
+        //删除应用
+        return this.removeById(appId);
+    }
+
+    @Override
     public Flux<String> chatToGenCode(String message, User loginUser, Long appId) {
         ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "应用ID异常");
         ThrowUtils.throwIf(message== null || StrUtil.isBlank(message), ErrorCode.PARAMS_ERROR, "请求参数为空");
@@ -169,7 +190,34 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         ThrowUtils.throwIf(!loginUser.getId().equals(appUserId), ErrorCode.NO_AUTH_ERROR, "用户权限异常");
         CodeGenTypeEnum codeGenType = CodeGenTypeEnum.getEnumByValue(app.getCodeGenType());
         ThrowUtils.throwIf(codeGenType == null, ErrorCode.PARAMS_ERROR, "应用生成类型异常");
-        return aiCodeGeneratorFacade.generateAndSaveCodeStreaming(message,codeGenType,appId);
+        ChatHistory userHistory = new ChatHistory();
+        userHistory.setAppId(appId);
+        userHistory.setUserId(loginUser.getId());
+        userHistory.setMessage(message);
+        userHistory.setMessageType(MessageTypeEnum.USER.getValue());
+        chatHistoryService.save(userHistory);
+        StringBuilder aiContentBuilder = new StringBuilder();
+        Flux<String> resultFlux = aiCodeGeneratorFacade.generateAndSaveCodeStreaming(message, codeGenType, appId);
+        return resultFlux
+                .doOnNext(aiContentBuilder::append)
+                .doOnComplete(() -> {
+                    ChatHistory aiHistory = new ChatHistory();
+                    aiHistory.setAppId(appId);
+                    aiHistory.setUserId(loginUser.getId());
+                    aiHistory.setMessage(aiContentBuilder.toString());
+                    aiHistory.setMessageType(MessageTypeEnum.AI.getValue());
+                    aiHistory.setParentId(userHistory.getId());
+                    chatHistoryService.save(aiHistory);
+                })
+                .doOnError(e -> {
+                    ChatHistory errorHistory = new ChatHistory();
+                    errorHistory.setAppId(appId);
+                    errorHistory.setUserId(loginUser.getId());
+                    errorHistory.setMessage(e.getMessage());
+                    errorHistory.setMessageType(MessageTypeEnum.ERROR.getValue());
+                    errorHistory.setParentId(userHistory.getId());
+                    chatHistoryService.save(errorHistory);
+                });
     }
 
     @Override

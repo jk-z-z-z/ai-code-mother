@@ -1,4 +1,3 @@
-// @ts-ignore
 /* eslint-disable */
 import request from '@/request'
 
@@ -15,18 +14,13 @@ export async function addApp(body: API.AppAddRequest, options?: { [key: string]:
 }
 
 /** 管理员删除应用接口 POST /app/admin/delete */
-export async function deleteApp(
-  // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
-  params: API.deleteAppParams,
-  options?: { [key: string]: any }
-) {
+export async function deleteApp(body: API.DeleteRequest, options?: { [key: string]: any }) {
   return request<API.BaseResponseBoolean>('/app/admin/delete', {
     method: 'POST',
-    params: {
-      ...params,
-      id: undefined,
-      ...params['id'],
+    headers: {
+      'Content-Type': 'application/json',
     },
+    data: body,
     ...(options || {}),
   })
 }
