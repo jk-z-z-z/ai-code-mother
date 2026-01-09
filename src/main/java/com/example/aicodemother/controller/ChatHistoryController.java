@@ -16,14 +16,11 @@ import com.example.aicodemother.service.AppService;
 import com.example.aicodemother.service.ChatHistoryService;
 import com.example.aicodemother.service.UserService;
 import com.mybatisflex.core.paginate.Page;
-import com.mybatisflex.core.query.QueryWrapper;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/chatHistory")
@@ -38,11 +35,11 @@ public class ChatHistoryController {
     @Autowired
     private UserService userService;
 
-    @PostMapping("/app/list/page")
-    public BaseResponse<Page<ChatHistory>> listAppChatHistoryByPage(@RequestParam Long appId,
-                                                                      @RequestParam int pageSize,
-                                                                      @RequestParam LocalDateTime lastCreateTime,
-                                                                      HttpServletRequest request) {
+    @PostMapping("/app/list/{appId}")
+    public BaseResponse<Page<ChatHistory>> listAppChatHistoryByPage(@PathVariable Long appId,
+                                                                    @RequestParam(defaultValue = "10") int pageSize,
+                                                                    @RequestParam LocalDateTime lastCreateTime,
+                                                                    HttpServletRequest request) {
         ThrowUtils.throwIf(appId==null,ErrorCode.PARAMS_ERROR);
         if(pageSize<=0){
             pageSize=10;
@@ -54,20 +51,23 @@ public class ChatHistoryController {
 
     @PostMapping("/admin/list/page")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
-    public BaseResponse<Page<ChatHistoryVO>> listChatHistoryByPage(@RequestBody ChatHistoryQueryRequest chatHistoryQueryRequest) {
+    public BaseResponse<Page<ChatHistory>> listChatHistoryByPage(@RequestBody ChatHistoryQueryRequest chatHistoryQueryRequest, HttpServletRequest request) {
         ThrowUtils.throwIf(chatHistoryQueryRequest == null, ErrorCode.PARAMS_ERROR);
+        Long appId = chatHistoryQueryRequest.getAppId();
+        ThrowUtils.throwIf(appId == null, ErrorCode.PARAMS_ERROR);
+        App app = appService.getById(appId);
+        ThrowUtils.throwIf(app == null, ErrorCode.NOT_FOUND_ERROR);
+        LocalDateTime lastCreateTime = chatHistoryQueryRequest.getLastCreateTime();
+        ThrowUtils.throwIf(lastCreateTime == null, ErrorCode.PARAMS_ERROR);
         int pageNum = chatHistoryQueryRequest.getPageNum();
         int pageSize = chatHistoryQueryRequest.getPageSize();
         ThrowUtils.throwIf(pageNum <= 0 || pageSize <= 0, ErrorCode.PARAMS_ERROR);
-        QueryWrapper queryWrapper = chatHistoryService.getQueryWrapper(chatHistoryQueryRequest);
-        Page<ChatHistory> chatHistoryPage = chatHistoryService.page(Page.of(pageNum, pageSize), queryWrapper);
-        Page<ChatHistoryVO> voPage = new Page<>(pageNum, pageSize, chatHistoryPage.getTotalRow());
-        List<ChatHistoryVO> voList = chatHistoryPage.getRecords().stream()
-                .map(this::getChatHistoryVO)
-                .collect(Collectors.toList());
-        voPage.setRecords(voList);
-        return ResultUtils.success(voPage);
+        User loginUser = userService.getLoginUser(request);
+        Page<ChatHistory> chatHistoryPage = chatHistoryService.pageChatHistory(appId,pageSize,lastCreateTime,loginUser);
+        return ResultUtils.success(chatHistoryPage);
     }
+
+
 
     private ChatHistoryVO getChatHistoryVO(ChatHistory chatHistory) {
         ChatHistoryVO chatHistoryVO = new ChatHistoryVO();

@@ -72,7 +72,9 @@ public class AppController {
 
 
     @GetMapping("/chat/gen/code")
-    public Flux<ServerSentEvent<String>> chatToGenCode(String message, Long appId, HttpServletRequest request) {
+    public Flux<ServerSentEvent<String>> chatToGenCode(@RequestParam String message,
+                                                       @RequestParam Long appId,
+                                                       HttpServletRequest request) {
         ThrowUtils.throwIf(StrUtil.isBlank(message), ErrorCode.PARAMS_ERROR, "message不能为空");
         ThrowUtils.throwIf(appId == null, ErrorCode.PARAMS_ERROR, "appId不能为空");
         User loginUser = userService.getLoginUser(request);

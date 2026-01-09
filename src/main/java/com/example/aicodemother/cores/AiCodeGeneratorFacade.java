@@ -1,6 +1,7 @@
 package com.example.aicodemother.cores;
 
 import com.example.aicodemother.ai.AiCodeGeneratorService;
+import com.example.aicodemother.ai.AiCodeGeneratorServiceFactory;
 import com.example.aicodemother.ai.model.HtmlCodeResult;
 import com.example.aicodemother.ai.model.MultiFileCodeResult;
 import com.example.aicodemother.cores.parser.CodeParserExecutor;
@@ -23,7 +24,7 @@ import java.io.File;
 public class AiCodeGeneratorFacade {
 
     @Resource
-    private AiCodeGeneratorService aiCodeGeneratorService;
+    private AiCodeGeneratorServiceFactory aiCodeGeneratorServiceFactory;
 
 
 
@@ -57,6 +58,7 @@ public class AiCodeGeneratorFacade {
         if (codeGenTypeEnum == null) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "生成类型为空");
         }
+        AiCodeGeneratorService aiCodeGeneratorService=aiCodeGeneratorServiceFactory.getOrCreateAiCodeGeneratorService(appId);
         return switch (codeGenTypeEnum) {
             case HTML -> {
                 HtmlCodeResult htmlCodeResult = aiCodeGeneratorService.generateHtmlCode(userMessage);
@@ -84,6 +86,7 @@ public class AiCodeGeneratorFacade {
         if (codeGenTypeEnum == null) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "生成类型为空");
         }
+        AiCodeGeneratorService aiCodeGeneratorService=aiCodeGeneratorServiceFactory.getOrCreateAiCodeGeneratorService(appId);
         return switch (codeGenTypeEnum) {
             case HTML -> {
                 Flux<String> result = aiCodeGeneratorService.generateHtmlCodeStreaming(userMessage);
@@ -107,6 +110,7 @@ public class AiCodeGeneratorFacade {
      * @return 保存的目录
      */
     private File generateAndSaveHtmlCode(String userMessage,Long appId) {
+        AiCodeGeneratorService aiCodeGeneratorService=aiCodeGeneratorServiceFactory.getOrCreateAiCodeGeneratorService(appId);
         HtmlCodeResult result = aiCodeGeneratorService.generateHtmlCode(userMessage);
         return CodeFileSaverExecutor.executeSaver(result, CodeGenTypeEnum.HTML,appId);
     }
@@ -118,6 +122,7 @@ public class AiCodeGeneratorFacade {
      * @return 保存的目录
      */
     private File generateAndSaveMultiFileCode(String userMessage,Long appId) {
+        AiCodeGeneratorService aiCodeGeneratorService=aiCodeGeneratorServiceFactory.getOrCreateAiCodeGeneratorService(appId);
         MultiFileCodeResult result = aiCodeGeneratorService.generateMultiFileCode(userMessage);
         return CodeFileSaverExecutor.executeSaver(result, CodeGenTypeEnum.MULTI_FILE,appId);
     }
@@ -130,6 +135,7 @@ public class AiCodeGeneratorFacade {
      */
     @Deprecated
     private Flux<String> generateAndSaveHtmlCodeStreaming(String userMessage,Long appId) {
+        AiCodeGeneratorService aiCodeGeneratorService=aiCodeGeneratorServiceFactory.getOrCreateAiCodeGeneratorService(appId);
         Flux<String> result = aiCodeGeneratorService.generateHtmlCodeStreaming(userMessage);
         StringBuilder codeBuilder = new StringBuilder();
         return result
@@ -152,7 +158,8 @@ public class AiCodeGeneratorFacade {
      * @return 保存的目录
      */
     @Deprecated
-    private Flux<String> generateAndSaveMultiFileCodeStreaming(String userMessage) {
+    private Flux<String> generateAndSaveMultiFileCodeStreaming(String userMessage,Long appId) {
+        AiCodeGeneratorService aiCodeGeneratorService=aiCodeGeneratorServiceFactory.getOrCreateAiCodeGeneratorService(appId);
         Flux<String> result = aiCodeGeneratorService.generateMultiFileCodeStreaming(userMessage);
         StringBuilder codeBuilder = new StringBuilder();
         return result

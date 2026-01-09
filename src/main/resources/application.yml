@@ -1,6 +1,10 @@
 spring:
   application:
     name: ai-code-mother-backend
+  # session 配置
+  session:
+    # session 30 天过期
+    timeout: 2592000
   profiles:
     active: local
   # mysql
@@ -13,12 +17,17 @@ spring:
     redis:
       host: localhost
       port: 6379
-      password:
-
+      database: 0
+      password: 
+      ttl: 3600
 server:
   port: 8123
   servlet:
     context-path: /api
+    # cookie 30 天过期
+    session:
+      cookie:
+        max-age: 2592000
 
 # springdoc-openapi????
 springdoc:
